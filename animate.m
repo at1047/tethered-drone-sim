@@ -1,9 +1,9 @@
 function animate(data, dt)
 % ANIMATE_LINE Animate a 3D line segment over time.
 %
-% data: 6 x N matrix
-%       data(1:3, i) = [x1; y1; z1]
-%       data(4:6, i) = [x2; y2; z2]
+% data: 12 x N matrix (or at least 9 x N)
+%       data(1:3, i) = [x1; y1; z1] (Drone position)
+%       data(7:9, i) = [x2; y2; z2] (Payload position)
 % dt:   time between frames (seconds)
 
 N = size(data, 2);

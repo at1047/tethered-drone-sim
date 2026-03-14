@@ -1,6 +1,15 @@
 close all; clear all; clc;
+colororder(groot, 'gem');
+
 
 g = 9.81;
+
+% Constants
+params.mq = 0.7;
+params.mp = 0.7;
+params.L = 0.5;
+params.e3 = [0;0;1];
+params.g = -9.81;
 
 q0 = [0;
       0;
@@ -12,20 +21,11 @@ dq0 = [0;
 
 qp0 = [0;
       0;
-      1.5;];
+      q0(3) - params.L;];
 
 dqp0 = [0;
        0;
        0;];
-
-
-
-% Constants
-params.mq = 1;
-params.mp = 0.8;
-params.L = 0.5;
-params.e3 = [0;0;1];
-params.g = -9.81;
 
 % Controller & aero Constants
 params.pos_natFreq = 2.0;                 % [rad/s] natural frequency for position loop
@@ -33,7 +33,10 @@ params.pos_damping = 0.7;                 % damping ratio
 params.maxProperAcc = 13;                 % [m/s^2] max proper acceleration
 params.minVerticalProperAcceleration = -1; % [m/s^2] min vertical proper acceleration
 params.linDragCoeffB = [0.1286; 0.1286; 0.1286]; % body-frame linear drag [N/(m/s)]
-params.payloadLinDragCoeffB = [0.5; 0.5; 0.5];    % payload linear drag [N/(m/s)] in world frame
+
+payloadLinDrag = 1.225*3.14*(0.067/2)^2*0.6*3;
+
+params.payloadLinDragCoeffB = [payloadLinDrag; payloadLinDrag; payloadLinDrag];    % payload linear drag [N/(m/s)]
 
 % Initial conditions
 rhat = [0;0;-1];
@@ -78,37 +81,44 @@ for i = 2:length(t_steps)
 end
 
 figure(1); hold on;
-title('Drone Position over time')
-subplot(3,1,1);
-plot(t_steps, s_arr(1,:), 'r', 'LineWidth', 2)
-subplot(3,1,2);
-plot(t_steps, s_arr(2,:), 'g', 'LineWidth', 2)
-subplot(3,1,3);
-plot(t_steps, s_arr(3,:), 'b', 'LineWidth', 2)
-
+title("Quadcopter Position over time (mass: " + params.mp + "kg)")
+plot(t_steps, s_arr(1,:), 'r', 'DisplayName', 'x', 'LineWidth', 2)
+plot(t_steps, s_arr(2,:), 'g', 'DisplayName', 'y', 'LineWidth', 2)
+plot(t_steps, s_arr(3,:), 'b', 'DisplayName', 'z', 'LineWidth', 2)
+legend;
 
 figure(2); hold on;
-title('Payload Position over time')
-subplot(3,1,1);
-plot(t_steps, sp_arr(1,:), 'r', 'LineWidth', 2)
-subplot(3,1,2);
-plot(t_steps, sp_arr(2,:), 'g', 'LineWidth', 2)
-subplot(3,1,3);
-plot(t_steps, sp_arr(3,:), 'b', 'LineWidth', 2)
+title("Payload Position over time (mass: " + params.mp + "kg)")
+plot(t_steps, sp_arr(1,:), 'r', 'DisplayName', 'x', 'LineWidth', 2)
+plot(t_steps, sp_arr(2,:), 'g', 'DisplayName', 'y', 'LineWidth', 2)
+plot(t_steps, sp_arr(3,:), 'b', 'DisplayName', 'z', 'LineWidth', 2)
+legend;
 
+
+figure(3);
+subplot(2, 1, 1); hold on;
+title("Quadcopter Position over time (mass: " + params.mq + "kg)")
+plot(t_steps, s_arr(1,:), 'r', 'DisplayName', 'x', 'LineWidth', 2)
+plot(t_steps, s_arr(2,:), 'g', 'DisplayName', 'y', 'LineWidth', 2)
+plot(t_steps, s_arr(3,:), 'b', 'DisplayName', 'z', 'LineWidth', 2)
+legend;
+
+subplot(2, 1, 2); hold on;
+title("Payload Position over time (mass: " + params.mp + "kg)")
+plot(t_steps, sp_arr(1,:), 'r', 'DisplayName', 'x', 'LineWidth', 2)
+plot(t_steps, sp_arr(2,:), 'g', 'DisplayName', 'y', 'LineWidth', 2)
+plot(t_steps, sp_arr(3,:), 'b', 'DisplayName', 'z', 'LineWidth', 2)
+legend;
 
 figure(4); hold on;
 plot(t_steps(2:end), T_arr(1,2:end), 'r', 'LineWidth', 2)
-title('T over time')
+title('Tension Force over time')
 
 figure(5); hold on;
 title('rhat over time')
-subplot(3,1,1);
-plot(t_steps, R_arr(1,:), 'g', 'LineWidth', 2)
-subplot(3,1,2);
-plot(t_steps, R_arr(2,:), 'g', 'LineWidth', 2)
-subplot(3,1,3);
-plot(t_steps, R_arr(3,:), 'g', 'LineWidth', 2)
+plot(t_steps, R_arr(1,:), 'r', 'DisplayName', 'x', 'LineWidth', 2)
+plot(t_steps, R_arr(2,:), 'g', 'DisplayName', 'y', 'LineWidth', 2)
+plot(t_steps, R_arr(3,:), 'b', 'DisplayName', 'z', 'LineWidth', 2)
 
 % animate([s_arr;sp_arr], dt)
 
@@ -133,28 +143,19 @@ dp = sp0(4:6);
 
 [f, R_wb] = u_input(params, t, q, dq);
 
-% Body-frame linear drag (matches PC-Apps style):
-%   vel_b = R_wb' * v_world
-%   F_drag_b = -diag(linDragCoeffB) * vel_b
-%   then rotate back to world
+% Body-frame linear drag:
 v_b = R_wb.' * dq;
 K = diag(params.linDragCoeffB);   % [N/(m/s)]
 F_drag_b = -K * v_b;
 F_drag_w = R_wb * F_drag_b;
 
-% Payload drag in world frame (linear per-axis, like linDragCoeffB)
+% Payload drag in world frame
 Kp_payload = diag(params.payloadLinDragCoeffB);
 F_drag_p = -Kp_payload * dp;
-
-
 
 A = [mq * eye(3), zeros([3,3]), -rhat;
      zeros([3,3]), mp * eye(3), +rhat;
      -rhat.', rhat.', 0];
-
-% B = [f + e3 * mq * g;
-%      e3 * mp * g;
-%      -norm(dp - dq)^2/L];
 
 B = [ f + F_drag_w + e3 * mq * g;
       e3 * mp * g + F_drag_p;
@@ -178,24 +179,6 @@ sp1 = [new_p; new_dp];
 s1 = [new_q; new_dq];
 
 end
-
-% function f = u_input(t)
-% 
-%     thrust_eq = 9.81*1.2;
-% 
-%     if t < 0.2
-%         f = [1;0;thrust_eq];
-%     elseif t > 1 && t < 1.2
-%         f = [-1;0;thrust_eq];
-%     % elseif t < 2.5
-%     %     f = [0.1;0;thrust_eq*0.9];
-%     else
-%         f = [0;0;thrust_eq];
-%     end
-% 
-%     % f = [0.5;0;thrust_eq];
-% 
-% end
 
 function [f, R] = u_input(params, t, p, pdot)
     % Position controller that mirrors the C++ QuadcopterController::Run:
@@ -252,6 +235,6 @@ function p_des = desired_position(t)
     if t < 0.5
         p_des = [0; 0; 2];     % hover at (0,0)
     else
-        p_des = [1; 0; 2];     % return to hover
+        p_des = [1; 2; 2];     % return to hover
     end
 end
