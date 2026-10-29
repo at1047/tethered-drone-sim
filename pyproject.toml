@@ -1,0 +1,14 @@
+[project]
+name = "capstone-sim"
+version = "0.1.0"
+description = "Lagrangian simulation of a quadcopter with a slung payload"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.9",
+    "numpy>=2.0",
+    "scipy>=1.14",
+    "sympy>=1.13",
+]
+
+[tool.uv]
+package = false
