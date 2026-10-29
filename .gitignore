@@ -1,2 +1,4 @@
 *.asv
 auto_*.m
+__pycache__/*
+*.pyc

@@ -24,7 +24,7 @@ c = (xq - xp)**2 + (yq - yp)**2 + (zq - zp)**2 - l**2
 
 # 4. Dynamics Matrices (D, C, G, B)
 print("Deriving D matrix...")
-D = sp.simplify(sp.Matrix([[sp.diff(sp.diff(T, dq[i]), dq[j]) for j in range(len(q))] for i in range(len(q))]))
+D = sp.Matrix([[sp.diff(sp.diff(T, dq[i]), dq[j]) for j in range(len(q))] for i in range(len(q))]).simplify()
 
 print("Deriving C matrix (this may take a moment)...")
 n = len(q)
@@ -36,7 +36,7 @@ for k in range(n):
 C = sp.simplify(C)
 
 print("Deriving G and B matrices...")
-G = sp.simplify(sp.Matrix([sp.diff(V, q[i]) for i in range(len(q))]))
+G = sp.Matrix([sp.diff(V, q[i]) for i in range(len(q))]).simplify()
 B = q_act.jacobian(q).T
 
 # 5. Constraint Jacobian and Acceleration-level constraint (ddc = 0)
